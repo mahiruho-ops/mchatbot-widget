@@ -1,0 +1,12 @@
+{
+  "name": "mchatbot-widget",
+  "version": "1.0.0",
+  "description": "Chatbot Built with Vanilla Javascript to be attached with any website.",
+  "license": "ISC",
+  "author": "Mahiruho Consulting Services",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
