@@ -12,6 +12,7 @@ class MChatBotWidget extends HTMLElement {
     this.isStarted = false;
     this.userEmail = "";
     this.userName = "";
+    this.userId = null;
     this.apiEndpoint = "http://localhost:5000/api/mchatbot";
     this.attachShadow({ mode: "open" });
   }
@@ -236,9 +237,9 @@ class MChatBotWidget extends HTMLElement {
     this.inputForm = this.shadowRoot.querySelector(".chatbot-input");
     this.resizeHandle = this.shadowRoot.querySelector(".resize-handle");
 
-    if (this.isStarted) {
-      this.connectWebSocket();
-    }
+    // if (this.isStarted) {
+    //   this.connectWebSocket();
+    // }
   }
 
   getExistingStyles() {
@@ -477,15 +478,19 @@ class MChatBotWidget extends HTMLElement {
       if (!response.ok) {
         throw new Error("Failed to start chat");
       }
-
+      const data = await response.json();
+      this.userId = data.userId;
       this.userEmail = email;
       this.userName = name;
 
       this.isStarted = true;
       this.render();
+      this.connectWebSocket(message);
+      // if (this.isStarted) {
+      // }
       this.setupEventListeners();
 
-      this.addMessage("user", message);
+      // this.sendMessage(message);
     } catch (error) {
       console.error("Failed to start chat:", error);
     }
@@ -602,10 +607,15 @@ class MChatBotWidget extends HTMLElement {
     }
   }
 
-  connectWebSocket() {
-    this.ws = new WebSocket("ws://localhost:5000");
+  connectWebSocket(firstMessage = null) {
+    this.ws = new WebSocket(`ws://localhost:5000?userId=${this.userId}`);
 
-    this.ws.onopen = () => console.log("✅ WebSocket Connected");
+    this.ws.onopen = () => {
+      console.log("✅ WebSocket Connected");
+      if (firstMessage) {
+        this.sendMessage(firstMessage);
+      }
+    };
     this.ws.onerror = (error) => console.error("❌ WebSocket Error:", error);
     this.ws.onclose = () => {
       console.log("🔄 WebSocket Disconnected. Attempting to Reconnect...");
@@ -621,7 +631,7 @@ class MChatBotWidget extends HTMLElement {
     this.addMessage("user", message);
 
     if (this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(message);
+      this.ws.send(JSON.stringify({ message, userId: this.userId }));
     } else {
       console.warn("⚠️ WebSocket is not connected. Retrying...");
       setTimeout(() => this.sendMessage(message), 1000);
