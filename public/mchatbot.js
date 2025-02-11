@@ -13,7 +13,8 @@ class MChatBotWidget extends HTMLElement {
     this.userEmail = "";
     this.userName = "";
     this.userId = null;
-    this.apiEndpoint = "http://localhost:5000/api/mchatbot";
+    this.apiEndpoint = "http://localhost:5555/api/mchatbot";
+    this.socketPath = "ws://localhost:5555";
     this.attachShadow({ mode: "open" });
   }
 
@@ -608,7 +609,7 @@ class MChatBotWidget extends HTMLElement {
   }
 
   connectWebSocket(firstMessage = null) {
-    this.ws = new WebSocket(`ws://localhost:5000?userId=${this.userId}`);
+    this.ws = new WebSocket(`${this.socketPath}?userId=${this.userId}`);
 
     this.ws.onopen = () => {
       console.log("✅ WebSocket Connected");
