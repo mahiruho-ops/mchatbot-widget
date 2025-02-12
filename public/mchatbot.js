@@ -1,3 +1,6 @@
+
+const COPYSVG = `<svg width="16" height="16" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" class="copy-button"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>`;
+
 class MChatBotWidget extends HTMLElement {
   constructor() {
     super();
@@ -6,10 +9,10 @@ class MChatBotWidget extends HTMLElement {
     this.messageList = null;
     this.inputForm = null;
     this.resizeHandle = null;
-    this.themeColor = "#007bff";
+    this.themeColor = "#701FAB";
     this.isDarkMode = false;
     this.isMinimized = false;
-    this.isStarted = false;
+    this.isStarted = false; // Change to false to show starter form
     this.userEmail = "";
     this.userName = "";
     this.userId = null;
@@ -73,7 +76,9 @@ class MChatBotWidget extends HTMLElement {
 
   getChatInterfaceHTML() {
     return `
-      <div class="chatbot-messages"></div>
+      <div class="chatbot-messages">
+          
+      </div>
       <form class="chatbot-input">
         <div class="input-container">
           <textarea rows="3" placeholder="Type a message..."></textarea>
@@ -107,6 +112,7 @@ class MChatBotWidget extends HTMLElement {
           --text-color: ${this.isDarkMode ? "#fff" : "#333"};
           --message-bg-user: ${this.isDarkMode ? "#4a4a4a" : "#e6e6e6"};
           --message-bg-bot: var(--theme-color);
+          --chat-input-bg: ${this.isDarkMode ? "#2a2a2a" : "#f8f8f8"};
           font-family: Arial, sans-serif;
         }
         .chatbot-container {
@@ -282,7 +288,7 @@ class MChatBotWidget extends HTMLElement {
       }
       .message {
         max-width: 80%;
-        margin-bottom: 20px;
+        margin-bottom: 25px;
         padding: 8px 12px;
         border-radius: 18px;
         line-height: 1.4;
@@ -306,16 +312,40 @@ class MChatBotWidget extends HTMLElement {
         margin-left: auto;
       }
       .message.bot {
-        background-color: var(--message-bg-bot);
-        color: #fff;
+        padding: 0 12px;
+        /* background-color: var(--message-bg-bot); */
+        
+        color: var(--text-color);
         align-self: flex-start;
       }
-      .message-time {
+      .message-tool {
         font-size: 0.7em;
         color: #888;
         position: absolute;
-        bottom: -18px;
-        right: 0;
+        bottom: -25px;
+        display: flex;
+        gap: 1em;
+        align-items:center;
+      }
+      .message.user .message-tool {
+       right:0;
+       bottom:-30px;
+      }
+       .message-tool .tool-button{
+        display: flex;
+        cursor: pointer;
+        padding: 5px;
+        border:none;
+        background:none;
+        color:#888;
+      }
+      .message a{
+        color: var(--text-color);
+        font-style: italic;
+      }
+      .message-tool .tool-button:hover {
+          background-color: var(--chat-input-bg);
+          border-radius: 5px;
       }
       .new-day-divider {
         text-align: center;
@@ -327,7 +357,7 @@ class MChatBotWidget extends HTMLElement {
         display: flex;
         flex-direction: column;
         padding: 20px;
-        background-color: ${this.isDarkMode ? "#2a2a2a" : "#f8f8f8"};
+        background-color: var(--chat-input-bg);
         border-top: 1px solid ${this.isDarkMode ? "#444" : "#eee"};
       }
       .input-container {
@@ -391,6 +421,7 @@ class MChatBotWidget extends HTMLElement {
       .chatbot-container.minimized .resize-handle {
         display: none;
       }
+      
       @media (max-width: 480px) {
         .chatbot-container {
           width: 100%;
@@ -426,6 +457,10 @@ class MChatBotWidget extends HTMLElement {
       this.inputForm.addEventListener("submit", (e) => this.handleSubmit(e));
       const textarea = this.inputForm.querySelector("textarea");
       textarea.addEventListener("keydown", (e) => this.handleKeyDown(e));
+
+      // this.shadowRoot
+      //   .querySelector(".tool-button.copy")
+      //   .addEventListener("click", () => console.log("copy button clicked"));
     }
 
     this.setupResizeListener();
@@ -437,11 +472,10 @@ class MChatBotWidget extends HTMLElement {
     this.toggleButton.textContent = this.isMinimized ? "+" : "−";
   }
 
-  
   async handleStarterSubmit(e) {
     e.preventDefault();
 
-    const getClientIP=async () =>{
+    const getClientIP = async () => {
       try {
         const response = await fetch("https://api64.ipify.org?format=json");
         const data = await response.json();
@@ -450,7 +484,7 @@ class MChatBotWidget extends HTMLElement {
         console.error("IP fetch failed:", error);
         return null;
       }
-    }
+    };
     const form = e.target;
     const formData = new FormData(form);
 
@@ -472,7 +506,7 @@ class MChatBotWidget extends HTMLElement {
           message,
           domain,
           user_agent,
-          ip_address
+          ip_address,
         }),
       });
 
@@ -496,7 +530,6 @@ class MChatBotWidget extends HTMLElement {
       console.error("Failed to start chat:", error);
     }
   }
-  
 
   handleSubmit(e) {
     e.preventDefault();
@@ -559,12 +592,33 @@ class MChatBotWidget extends HTMLElement {
   addMessage(sender, content) {
     const messageElement = document.createElement("div");
     messageElement.classList.add("message", sender);
-    messageElement.textContent = content;
+    const contentWrapper = document.createElement("div");
+    contentWrapper.classList.add("message-content");
+    contentWrapper.innerHTML =content
+    messageElement.appendChild(contentWrapper);
 
+    const toolElement = document.createElement("div");
+    toolElement.classList.add("message-tool");
+    const toolButton = document.createElement("button");
+    toolButton.classList.add("tool-button", "copy");
+    toolButton.addEventListener("click", function (event) {
+       const messageContent = event.target
+         .closest(".message")
+         .querySelector(".message-content"); // Get message text
+        if (messageContent) {
+          navigator.clipboard
+            .writeText(messageContent.textContent.trim())
+            .then(() => console.log("Message copied!"))
+            .catch((err) => console.error("Copy failed", err));
+        }
+    });
+    toolButton.innerHTML = COPYSVG;
+    toolElement.appendChild(toolButton);
     const timeElement = document.createElement("span");
     timeElement.classList.add("message-time");
     timeElement.textContent = new Date().toLocaleTimeString();
-    messageElement.appendChild(timeElement);
+    toolElement.appendChild(timeElement);
+    messageElement.appendChild(toolElement);
 
     this.messageList.appendChild(messageElement);
     this.messageList.scrollTop = this.messageList.scrollHeight;
