@@ -1,4 +1,3 @@
-
 const COPYSVG = `<svg width="16" height="16" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" class="copy-button"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>`;
 
 class MChatBotWidget extends HTMLElement {
@@ -16,8 +15,9 @@ class MChatBotWidget extends HTMLElement {
     this.userEmail = "";
     this.userName = "";
     this.userId = null;
+    this.sessionId = null;
     this.apiEndpoint = "http://localhost:5555/api/mchatbot";
-    this.socketPath = "ws://localhost:5555";
+    this.socketPath = "ws://localhost:5555/api/ws";
     this.attachShadow({ mode: "open" });
   }
 
@@ -495,18 +495,17 @@ class MChatBotWidget extends HTMLElement {
     const user_agent = navigator.userAgent;
     const ip_address = await getClientIP();
     try {
-      const response = await fetch(`${this.apiEndpoint}/start-chat`, {
+      const response = await fetch(`${this.apiEndpoint}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email,
-          name,
-          message,
-          domain,
+          domain:"mahiruho.com",// replace domain with domain variable in production
           user_agent,
           ip_address,
+          name
         }),
       });
 
@@ -517,6 +516,7 @@ class MChatBotWidget extends HTMLElement {
       this.userId = data.userId;
       this.userEmail = email;
       this.userName = name;
+      this.sessionId = data.sessionId;
 
       this.isStarted = true;
       this.render();
@@ -663,30 +663,72 @@ class MChatBotWidget extends HTMLElement {
   }
 
   connectWebSocket(firstMessage = null) {
-    this.ws = new WebSocket(`${this.socketPath}?userId=${this.userId}`);
+    try {
+      // Use namespace as query parameter instead of path
+      const wsUrl = `${this.socketPath}?namespace=chat&userId=${this.userId}&sessionId=${this.sessionId}`;
+      console.log("Attempting to connect to WebSocket:", wsUrl);
+      
+      this.ws = new WebSocket(wsUrl);
 
-    this.ws.onopen = () => {
-      console.log("✅ WebSocket Connected");
-      if (firstMessage) {
-        this.sendMessage(firstMessage);
-      }
-    };
-    this.ws.onerror = (error) => console.error("❌ WebSocket Error:", error);
-    this.ws.onclose = () => {
-      console.log("🔄 WebSocket Disconnected. Attempting to Reconnect...");
-      setTimeout(() => this.connectWebSocket(), 3000);
-    };
+      this.ws.onopen = () => {
+        console.log("✅ WebSocket Connected");
+        if (firstMessage) {
+          this.sendMessage(firstMessage);
+        }
+      };
 
-    this.ws.onmessage = (event) => {
-      this.addMessage("bot", event.data);
-    };
+      this.ws.onerror = (error) => {
+        console.error("❌ WebSocket Error:", {
+          readyState: this.ws.readyState,
+          url: this.ws.url,
+          error: error
+        });
+        
+        // Log the current connection state
+        const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+        console.log("WebSocket State:", states[this.ws.readyState]);
+      };
+
+      this.ws.onclose = (event) => {
+        console.log("🔄 WebSocket Disconnected:", {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean
+        });
+        
+        // Only attempt reconnect if it wasn't a normal closure
+        if (event.code !== 1000) {
+          console.log("Attempting to reconnect in 3 seconds...");
+          setTimeout(() => this.connectWebSocket(), 3000);
+        }
+      };
+
+      this.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.error) {
+            console.error("WebSocket Error Message:", data.error);
+            return;
+          }
+          this.addMessage("bot", data.data || data); // Handle both response formats
+        } catch (error) {
+          console.error("Error parsing WebSocket message:", error);
+        }
+      };
+    } catch (error) {
+      console.error("Error creating WebSocket connection:", error);
+    }
   }
 
   sendMessage(message) {
     this.addMessage("user", message);
 
     if (this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ message, userId: this.userId }));
+      this.ws.send(JSON.stringify({ 
+        message, 
+        userId: this.userId,
+        sessionId: this.sessionId 
+      }));
     } else {
       console.warn("⚠️ WebSocket is not connected. Retrying...");
       setTimeout(() => this.sendMessage(message), 1000);

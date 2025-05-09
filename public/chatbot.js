@@ -103,7 +103,7 @@ class MChatBotWidget extends HTMLElement {
   }
 
   connectWebSocket() {
-    this.ws = new WebSocket("ws://localhost:5000");
+    this.ws = new WebSocket("ws://localhost:5555");
 
     this.ws.onopen = () => console.log("✅ WebSocket Connected");
     this.ws.onerror = (error) => console.error("❌ WebSocket Error:", error);
