@@ -16,8 +16,8 @@ class MChatBotWidget extends HTMLElement {
     this.userName = "";
     this.userId = null;
     this.sessionId = null;
-    this.apiEndpoint = "http://localhost:5555/api/mchatbot";
-    this.socketPath = "ws://localhost:5555/api/ws";
+    this.apiEndpoint = "https://35ad-116-193-141-128.ngrok-free.app/api/mchatbot";   //"http://localhost:5555/api/mchatbot";
+    this.socketPath = "wss://35ad-116-193-141-128.ngrok-free.app/api/ws"; //"ws://localhost:5555/api/ws";
     this.errorMessage = ""; // Add error message property
     this.attachShadow({ mode: "open" });
   }
