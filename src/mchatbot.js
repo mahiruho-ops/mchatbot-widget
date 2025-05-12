@@ -16,7 +16,7 @@ class MChatBotWidget extends HTMLElement {
     this.userName = "";
     this.userId = null;
     this.sessionId = null;
-    this.sessionMode = "global"; // default value
+    this.sessionMode = "session"; // default value
     this.storage = window.localStorage; // default storage
     const is_ssl = import.meta.env.VITE_IS_SSL === "true";
     const api_domain = import.meta.env.VITE_API_DOMAIN;
@@ -24,12 +24,13 @@ class MChatBotWidget extends HTMLElement {
     this.socketPath = `${is_ssl ? "wss" : "ws"}://${api_domain}/api/ws`;
     this.errorMessage = "";
     this.attachShadow({ mode: "open" });
+    this.domain_name = "mahiruho.com"; // window.location.hostname;  
   }
 
   connectedCallback() {
     this.userEmail = this.getAttribute("email") || "";
     this.userName = this.getAttribute("name") || "";
-    this.sessionMode = this.getAttribute("session-mode") || "global";
+    this.sessionMode = this.getAttribute("session-mode") || "session";
     this.storage = this.sessionMode === "global" ? window.localStorage : window.sessionStorage;
     this.initializeSession();
   }
@@ -64,7 +65,7 @@ class MChatBotWidget extends HTMLElement {
     const storedSessionId = this.storage.getItem('mchatbot_session_id');
     if (storedSessionId) {
       try {
-        const response = await fetch(`${this.apiEndpoint}/session/${storedSessionId}`, {
+        const response = await fetch(`${this.apiEndpoint}/session/${storedSessionId}?domain=${this.domain_name}`,{
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'
@@ -85,10 +86,10 @@ class MChatBotWidget extends HTMLElement {
         }
 
         // Session is valid, restore the chat
-        this.userId = data.userId;
-        this.userEmail = data.userEmail;
-        this.userName = data.userName;
-        this.sessionId = data.sessionId;
+        this.userId = data.user_id;
+        this.userEmail = data.user_email;
+        
+        this.sessionId = data.id;
         this.isStarted = true;
         
         // Load conversation history
@@ -97,14 +98,19 @@ class MChatBotWidget extends HTMLElement {
           this.setupEventListeners();
           this.connectWebSocket();
           data.messages.forEach(msg => {
-            this.addMessage(msg.sender, msg.content);
+            this.addMessage("user", msg.message,msg.created_at);
+            this.addMessage("bot", msg.response,msg.created_at);
           });
         }
       } catch (error) {
         console.error('Failed to retrieve session:', error);
+        // TODO: uncomment this when we have a way to handle expired sessions
         this.storage.removeItem('mchatbot_session_id');
         this.startNewSession();
       }
+    }
+    else{
+      this.startNewSession();
     }
   }
 
@@ -586,7 +592,7 @@ class MChatBotWidget extends HTMLElement {
     const email = formData.get("email");
     const name = formData.get("name");
     const message = formData.get("message");
-    const domain = window.location.hostname;
+    const domain = this.domain_name;
     const user_agent = navigator.userAgent;
     const ip_address = await getClientIP();
     try {
@@ -597,7 +603,7 @@ class MChatBotWidget extends HTMLElement {
         },
         body: JSON.stringify({
           email,
-          domain:"mahiruho.com",// replace domain with domain variable in production
+          domain,// replace domain with domain variable in production
           user_agent,
           ip_address,
           name
@@ -702,7 +708,7 @@ class MChatBotWidget extends HTMLElement {
     this.resizeHandle.addEventListener("mousedown", startResize);
   }
 
-  addMessage(sender, content) {
+  addMessage(sender, content,timestamp) {
     const messageElement = document.createElement("div");
     messageElement.classList.add("message", sender);
     const contentWrapper = document.createElement("div");
@@ -729,7 +735,7 @@ class MChatBotWidget extends HTMLElement {
     toolElement.appendChild(toolButton);
     const timeElement = document.createElement("span");
     timeElement.classList.add("message-time");
-    timeElement.textContent = new Date().toLocaleTimeString();
+    timeElement.textContent = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
     toolElement.appendChild(timeElement);
     messageElement.appendChild(toolElement);
 
