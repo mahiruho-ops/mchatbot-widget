@@ -11,30 +11,39 @@ class MChatBotWidget extends HTMLElement {
     this.themeColor = "#701FAB";
     this.isDarkMode = false;
     this.isMinimized = false;
-    this.isStarted = false; // Change to false to show starter form
+    this.isStarted = false;
     this.userEmail = "";
     this.userName = "";
     this.userId = null;
     this.sessionId = null;
-    this.apiEndpoint = "https://35ad-116-193-141-128.ngrok-free.app/api/mchatbot";   //"http://localhost:5555/api/mchatbot";
-    this.socketPath = "wss://35ad-116-193-141-128.ngrok-free.app/api/ws"; //"ws://localhost:5555/api/ws";
-    this.errorMessage = ""; // Add error message property
+    this.sessionMode = "global"; // default value
+    this.storage = window.localStorage; // default storage
+    const is_ssl = import.meta.env.VITE_IS_SSL === "true";
+    const api_domain = import.meta.env.VITE_API_DOMAIN;
+    this.apiEndpoint = `${is_ssl ? "https" : "http"}://${api_domain}/api/mchatbot`;
+    this.socketPath = `${is_ssl ? "wss" : "ws"}://${api_domain}/api/ws`;
+    this.errorMessage = "";
     this.attachShadow({ mode: "open" });
   }
 
   connectedCallback() {
     this.userEmail = this.getAttribute("email") || "";
     this.userName = this.getAttribute("name") || "";
-    this.render();
-    this.setupEventListeners();
+    this.sessionMode = this.getAttribute("session-mode") || "global";
+    this.storage = this.sessionMode === "global" ? window.localStorage : window.sessionStorage;
+    this.initializeSession();
   }
 
   static get observedAttributes() {
-    return ["theme-color", "dark-mode", "email", "name"];
+    return ["theme-color", "dark-mode", "email", "name", "session-mode"];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    if (name === "theme-color") {
+    if (name === "session-mode") {
+      this.sessionMode = newValue || "global";
+      this.storage = this.sessionMode === "global" ? window.localStorage : window.sessionStorage;
+      this.initializeSession();
+    } else if (name === "theme-color") {
       this.themeColor = newValue;
       this.updateTheme();
     } else if (name === "dark-mode") {
@@ -49,6 +58,68 @@ class MChatBotWidget extends HTMLElement {
       const nameInput = this.shadowRoot?.querySelector('input[name="name"]');
       if (nameInput) nameInput.value = newValue;
     }
+  }
+
+  async initializeSession() {
+    const storedSessionId = this.storage.getItem('mchatbot_session_id');
+    if (storedSessionId) {
+      try {
+        const response = await fetch(`${this.apiEndpoint}/session/${storedSessionId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Session retrieval failed');
+        }
+
+        const data = await response.json();
+        
+        if (data.error || data.expired) {
+          // Handle error or expired session
+          this.storage.removeItem('mchatbot_session_id');
+          this.startNewSession();
+          return;
+        }
+
+        // Session is valid, restore the chat
+        this.userId = data.userId;
+        this.userEmail = data.userEmail;
+        this.userName = data.userName;
+        this.sessionId = data.sessionId;
+        this.isStarted = true;
+        
+        // Load conversation history
+        if (data.messages && Array.isArray(data.messages)) {
+          this.render();
+          this.setupEventListeners();
+          this.connectWebSocket();
+          data.messages.forEach(msg => {
+            this.addMessage(msg.sender, msg.content);
+          });
+        }
+      } catch (error) {
+        console.error('Failed to retrieve session:', error);
+        this.storage.removeItem('mchatbot_session_id');
+        this.startNewSession();
+      }
+    }
+  }
+
+  startNewSession() {
+    this.isStarted = false;
+    this.render();
+    this.setupEventListeners();
+  }
+
+  handleSessionExpiration() {
+    this.storage.removeItem('mchatbot_session_id');
+    this.startNewSession();
+    this.errorMessage = "Your session has expired. Please start a new chat.";
+    this.render();
+    this.setupEventListeners();
   }
 
   getStarterFormHTML() {
@@ -123,7 +194,7 @@ class MChatBotWidget extends HTMLElement {
           right: 20px;
           min-width: 350px;
           width: 380px;
-          height: 500px;
+          height: 70%;
           background-color: var(--bg-color);
           border-radius: 10px;
           box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -498,7 +569,7 @@ class MChatBotWidget extends HTMLElement {
 
   async handleStarterSubmit(e) {
     e.preventDefault();
-    this.errorMessage = ""; // Clear any previous error
+    this.errorMessage = "";
     const getClientIP = async () => {
       try {
         const response = await fetch("https://api64.ipify.org?format=json");
@@ -526,7 +597,7 @@ class MChatBotWidget extends HTMLElement {
         },
         body: JSON.stringify({
           email,
-          domain,//"mahiruho.com",// replace domain with domain variable in production
+          domain:"mahiruho.com",// replace domain with domain variable in production
           user_agent,
           ip_address,
           name
@@ -557,14 +628,13 @@ class MChatBotWidget extends HTMLElement {
       this.userName = name;
       this.sessionId = data.sessionId;
 
+      // Store session ID in appropriate storage
+      this.storage.setItem('mchatbot_session_id', this.sessionId);
+
       this.isStarted = true;
       this.render();
       this.connectWebSocket(message);
-      // if (this.isStarted) {
-      // }
       this.setupEventListeners();
-
-      // this.sendMessage(message);
       this.errorMessage = "";
     } catch (error) {
       this.errorMessage = "Something went wrong. Please try again later.";
