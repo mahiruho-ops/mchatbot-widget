@@ -18,6 +18,7 @@ class MChatBotWidget extends HTMLElement {
     this.sessionId = null;
     this.apiEndpoint = "http://localhost:5555/api/mchatbot";
     this.socketPath = "ws://localhost:5555/api/ws";
+    this.errorMessage = ""; // Add error message property
     this.attachShadow({ mode: "open" });
   }
 
@@ -54,6 +55,7 @@ class MChatBotWidget extends HTMLElement {
     return `
       <form class="starter-form">
         <h2 class="form-title">Start a Conversation</h2>
+        ${this.errorMessage ? `<div class="error-message">${this.errorMessage}</div>` : ""}
         <div class="form-field">
           <label for="email">Email *</label>
           <input type="email" id="email" name="email" required value="${this.userEmail}" 
@@ -421,6 +423,17 @@ class MChatBotWidget extends HTMLElement {
       .chatbot-container.minimized .resize-handle {
         display: none;
       }
+      .error-message {
+        color: #fff;
+        background: #d32f2f;
+        padding: 10px 14px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        font-size: 0.98em;
+        text-align: center;
+        box-shadow: 0 2px 6px rgba(211,47,47,0.08);
+        letter-spacing: 0.01em;
+      }
       
       @media (max-width: 480px) {
         .chatbot-container {
@@ -451,6 +464,17 @@ class MChatBotWidget extends HTMLElement {
       starterForm.addEventListener("submit", (e) =>
         this.handleStarterSubmit(e)
       );
+      // Clear error message on input
+      const clearError = () => {
+        if (this.errorMessage) {
+          this.errorMessage = "";
+          this.render();
+          this.setupEventListeners();
+        }
+      };
+      starterForm.querySelectorAll("input, textarea").forEach((el) => {
+        el.addEventListener("input", clearError);
+      });
     }
 
     if (this.isStarted) {
@@ -474,7 +498,7 @@ class MChatBotWidget extends HTMLElement {
 
   async handleStarterSubmit(e) {
     e.preventDefault();
-
+    this.errorMessage = ""; // Clear any previous error
     const getClientIP = async () => {
       try {
         const response = await fetch("https://api64.ipify.org?format=json");
@@ -502,7 +526,7 @@ class MChatBotWidget extends HTMLElement {
         },
         body: JSON.stringify({
           email,
-          domain:"mahiruho.com",// replace domain with domain variable in production
+          domain,//"mahiruho.com",// replace domain with domain variable in production
           user_agent,
           ip_address,
           name
@@ -510,7 +534,22 @@ class MChatBotWidget extends HTMLElement {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to start chat");
+        let errorMsg = "Something went wrong. Please try again later.";
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {}
+        if (response.status === 404) {
+          errorMsg = "This domain is not registered for chat support.";
+        } else if (response.status === 403) {
+          errorMsg = "This email address is restricted from using chat support.";
+        } else if (errorData && errorData.error) {
+          errorMsg = errorData.error;
+        }
+        this.errorMessage = errorMsg;
+        this.render();
+        this.setupEventListeners();
+        return;
       }
       const data = await response.json();
       this.userId = data.userId;
@@ -526,7 +565,11 @@ class MChatBotWidget extends HTMLElement {
       this.setupEventListeners();
 
       // this.sendMessage(message);
+      this.errorMessage = "";
     } catch (error) {
+      this.errorMessage = "Something went wrong. Please try again later.";
+      this.render();
+      this.setupEventListeners();
       console.error("Failed to start chat:", error);
     }
   }
