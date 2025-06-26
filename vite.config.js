@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: '/mchatbot-widget/',
   build: {
     lib: {
       entry: './src/mchatbot.js',
