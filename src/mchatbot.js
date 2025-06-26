@@ -24,7 +24,7 @@ class MChatBotWidget extends HTMLElement {
     this.socketPath = `${is_ssl ? "wss" : "ws"}://${api_domain}/api/ws`;
     this.errorMessage = "";
     this.attachShadow({ mode: "open" });
-    this.domain_name = "mahiruho.com"; // window.location.hostname;  
+    this.domain_name = window.location.hostname;  
   }
 
   connectedCallback() {
