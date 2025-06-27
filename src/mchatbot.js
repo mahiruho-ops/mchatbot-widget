@@ -825,7 +825,8 @@ class MChatBotWidget extends HTMLElement {
       '.back-to-top',
       '.g-recaptcha',
       '.recaptcha',
-      '[data-sitekey]', // Google reCAPTCHA
+      '[data-sitekey]', // Google 
+      '.rc-anchor',
       '.floating-button',
       '.fixed-bottom-right',
       '.chat-widget',
