@@ -18,6 +18,7 @@ class MChatBotWidget extends HTMLElement {
     this.sessionId = null;
     this.sessionMode = "session"; // default value
     this.storage = window.localStorage; // default storage
+    this.widgetHeight = "70%"; // default height
     const is_ssl = import.meta.env.VITE_IS_SSL === "true";
     const api_domain = import.meta.env.VITE_API_DOMAIN;
     this.apiEndpoint = `${is_ssl ? "https" : "http"}://${api_domain}/api/mchatbot`;
@@ -31,12 +32,13 @@ class MChatBotWidget extends HTMLElement {
     this.userEmail = this.getAttribute("email") || "";
     this.userName = this.getAttribute("name") || "";
     this.sessionMode = this.getAttribute("session-mode") || "session";
+    this.widgetHeight = this.getAttribute("height") || "70%";
     this.storage = this.sessionMode === "global" ? window.localStorage : window.sessionStorage;
     this.initializeSession();
   }
 
   static get observedAttributes() {
-    return ["theme-color", "dark-mode", "email", "name", "session-mode"];
+    return ["theme-color", "dark-mode", "email", "name", "session-mode", "height"];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -58,6 +60,9 @@ class MChatBotWidget extends HTMLElement {
       this.userName = newValue;
       const nameInput = this.shadowRoot?.querySelector('input[name="name"]');
       if (nameInput) nameInput.value = newValue;
+    } else if (name === "height") {
+      this.widgetHeight = newValue || "70%";
+      this.updateHeight();
     }
   }
 
@@ -200,7 +205,7 @@ class MChatBotWidget extends HTMLElement {
           right: 20px;
           min-width: 350px;
           width: 380px;
-          height: 70%;
+          height: ${this.widgetHeight};
           background-color: var(--bg-color);
           border-radius: 10px;
           box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -778,6 +783,12 @@ class MChatBotWidget extends HTMLElement {
         }
       `;
       this.shadowRoot.appendChild(style);
+    }
+  }
+
+  updateHeight() {
+    if (this.chatWindow && !this.isMinimized) {
+      this.chatWindow.style.height = this.widgetHeight;
     }
   }
 
