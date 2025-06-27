@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MChatBot Widget - CORS Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>MChatBot Widget - CORS Test</h1>
+    
+    <div class="test-section info">
+        <h3>Test Instructions</h3>
+        <p>This page tests the CORS configuration of your MChatBot widget deployment. Click the buttons below to test different aspects:</p>
+    </div>
+
+    <div class="test-section">
+        <h3>1. Health Check Test</h3>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <div id="health-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Widget Script Load Test</h3>
+        <button onclick="testScriptLoad()">Test Script Loading</button>
+        <div id="script-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>3. Widget Component Test</h3>
+        <button onclick="testWidget()">Test Widget Component</button>
+        <div id="widget-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>4. Full Widget Integration Test</h3>
+        <button onclick="testFullIntegration()">Test Full Integration</button>
+        <div id="integration-result"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://api.mretailstore.com/mchatbot-widget';
+        
+        function showResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId);
+            element.className = success ? 'success' : 'error';
+            element.innerHTML = `
+                <h4>${success ? '✅ Success' : '❌ Error'}</h4>
+                <p>${message}</p>
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+        }
+
+        async function testHealth() {
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('health-result', true, 'Health endpoint is accessible and responding correctly.', data);
+                } else {
+                    showResult('health-result', false, `Health endpoint returned status ${response.status}`);
+                }
+            } catch (error) {
+                showResult('health-result', false, `Failed to access health endpoint: ${error.message}`);
+            }
+        }
+
+        async function testScriptLoad() {
+            try {
+                const response = await fetch(`${BASE_URL}/mchatbot.js`);
+                
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('javascript')) {
+                        showResult('script-result', true, 'Widget script is accessible with correct content type.');
+                    } else {
+                        showResult('script-result', false, `Script returned incorrect content type: ${contentType}`);
+                    }
+                } else {
+                    showResult('script-result', false, `Script returned status ${response.status}`);
+                }
+            } catch (error) {
+                showResult('script-result', false, `Failed to load script: ${error.message}`);
+            }
+        }
+
+        function testWidget() {
+            try {
+                // Check if the custom element is defined
+                if (customElements.get('mchatbot-widget')) {
+                    showResult('widget-result', true, 'Widget component is properly defined and registered.');
+                } else {
+                    showResult('widget-result', false, 'Widget component is not defined. Make sure the script is loaded.');
+                }
+            } catch (error) {
+                showResult('widget-result', false, `Error checking widget component: ${error.message}`);
+            }
+        }
+
+        async function testFullIntegration() {
+            try {
+                // Create a test container
+                const testContainer = document.createElement('div');
+                testContainer.id = 'test-widget-container';
+                document.body.appendChild(testContainer);
+
+                // Load the script
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.src = `${BASE_URL}/mchatbot.js`;
+                
+                script.onload = () => {
+                    // Wait a bit for the component to register
+                    setTimeout(() => {
+                        if (customElements.get('mchatbot-widget')) {
+                            // Create the widget
+                            const widget = document.createElement('mchatbot-widget');
+                            widget.setAttribute('theme-color', '#701FAB');
+                            widget.setAttribute('dark-mode', 'false');
+                            widget.setAttribute('email', 'test@example.com');
+                            widget.setAttribute('name', 'Test User');
+                            widget.setAttribute('session-mode', 'tab');
+                            
+                            testContainer.appendChild(widget);
+                            
+                            showResult('integration-result', true, 'Widget successfully loaded and rendered! Check the bottom-right corner for the chat widget.');
+                        } else {
+                            showResult('integration-result', false, 'Widget component failed to register after script load.');
+                        }
+                    }, 1000);
+                };
+                
+                script.onerror = () => {
+                    showResult('integration-result', false, 'Failed to load widget script.');
+                };
+                
+                document.head.appendChild(script);
+                
+            } catch (error) {
+                showResult('integration-result', false, `Integration test failed: ${error.message}`);
+            }
+        }
+
+        // Auto-run health check on page load
+        window.addEventListener('load', () => {
+            setTimeout(testHealth, 1000);
+        });
+    </script>
+</body>
+</html> 
