@@ -19,6 +19,7 @@ class MChatBotWidget extends HTMLElement {
     this.sessionMode = "session"; // default value
     this.storage = window.localStorage; // default storage
     this.widgetHeight = "70%"; // default height
+    this.widgetPosition = "bottom-right"; // default position
     const is_ssl = import.meta.env.VITE_IS_SSL === "true";
     const api_domain = import.meta.env.VITE_API_DOMAIN;
     this.apiEndpoint = `${is_ssl ? "https" : "http"}://${api_domain}/mchatbot/public`;
@@ -33,12 +34,13 @@ class MChatBotWidget extends HTMLElement {
     this.userName = this.getAttribute("name") || "";
     this.sessionMode = this.getAttribute("session-mode") || "session";
     this.widgetHeight = this.getAttribute("height") || "70%";
+    this.widgetPosition = this.getAttribute("position") || "bottom-right";
     this.storage = this.sessionMode === "global" ? window.localStorage : window.sessionStorage;
     this.initializeSession();
   }
 
   static get observedAttributes() {
-    return ["theme-color", "dark-mode", "email", "name", "session-mode", "height"];
+    return ["theme-color", "dark-mode", "email", "name", "session-mode", "height", "position"];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -63,6 +65,9 @@ class MChatBotWidget extends HTMLElement {
     } else if (name === "height") {
       this.widgetHeight = newValue || "70%";
       this.updateHeight();
+    } else if (name === "position") {
+      this.widgetPosition = newValue || "bottom-right";
+      this.updatePosition();
     }
   }
 
@@ -201,8 +206,7 @@ class MChatBotWidget extends HTMLElement {
         }
         .chatbot-container {
           position: fixed;
-          bottom: 20px;
-          right: 20px;
+          ${this.getPositionStyles()}
           min-width: 350px;
           width: 380px;
           height: ${this.widgetHeight};
@@ -214,6 +218,7 @@ class MChatBotWidget extends HTMLElement {
           overflow: hidden;
           transition: all 0.3s ease;
           border: 2px solid var(--theme-color);
+          z-index: 999999;
         }
         .chatbot-header {
           background-color: var(--theme-color);
@@ -570,6 +575,7 @@ class MChatBotWidget extends HTMLElement {
     }
 
     this.setupResizeListener();
+    this.setupCollisionDetection();
   }
 
   toggleChat() {
@@ -792,6 +798,150 @@ class MChatBotWidget extends HTMLElement {
     }
   }
 
+  updatePosition() {
+    if (this.chatWindow) {
+      const styles = this.getPositionStyles();
+      const styleArray = styles.split(';').filter(style => style.trim());
+      styleArray.forEach(style => {
+        const [property, value] = style.split(':').map(s => s.trim());
+        if (property && value) {
+          this.chatWindow.style[property] = value;
+        }
+      });
+    }
+  }
+
+  detectAndAvoidConflicts() {
+    if (!this.chatWindow) return;
+    
+    const widgetRect = this.chatWindow.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Check for common conflicting elements
+    const conflictingSelectors = [
+      '.go-to-top',
+      '.scroll-to-top', 
+      '.back-to-top',
+      '.g-recaptcha',
+      '.recaptcha',
+      '[data-sitekey]', // Google reCAPTCHA
+      '.floating-button',
+      '.fixed-bottom-right',
+      '.chat-widget',
+      '.support-widget',
+      '.mchatbot-conflict-test' // Our test element
+    ];
+    
+    let hasConflict = false;
+    conflictingSelectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        if (element !== this && this.elementsOverlap(widgetRect, element.getBoundingClientRect())) {
+          hasConflict = true;
+          console.log(`Conflict detected with: ${selector}`);
+        }
+      });
+    });
+    
+    if (hasConflict) {
+      console.log('Attempting to reposition widget due to conflict...');
+      this.repositionWidget();
+    }
+  }
+
+  elementsOverlap(rect1, rect2) {
+    return !(rect1.right < rect2.left || 
+             rect1.left > rect2.right || 
+             rect1.bottom < rect2.top || 
+             rect1.top > rect2.bottom);
+  }
+
+  repositionWidget() {
+    const positions = [
+      { position: "bottom-right", styles: "bottom: 20px; right: 20px;" },
+      { position: "bottom-left", styles: "bottom: 20px; left: 20px;" },
+      { position: "top-right", styles: "top: 20px; right: 20px;" },
+      { position: "top-left", styles: "top: 20px; left: 20px;" },
+      { position: "bottom-right", styles: "bottom: 80px; right: 20px;" }, // Higher up
+      { position: "bottom-right", styles: "bottom: 20px; right: 100px;" }  // More to the left
+    ];
+    
+    for (let pos of positions) {
+      if (!this.checkPositionConflict(pos.styles)) {
+        this.widgetPosition = pos.position;
+        this.updatePosition();
+        console.log(`Widget repositioned to: ${pos.position}`);
+        break;
+      }
+    }
+  }
+
+  checkPositionConflict(styles) {
+    if (!this.chatWindow) return true;
+    
+    // Temporarily apply the position to check for conflicts
+    const originalStyles = {
+      bottom: this.chatWindow.style.bottom,
+      top: this.chatWindow.style.top,
+      left: this.chatWindow.style.left,
+      right: this.chatWindow.style.right
+    };
+    
+    const styleArray = styles.split(';').filter(style => style.trim());
+    styleArray.forEach(style => {
+      const [property, value] = style.split(':').map(s => s.trim());
+      if (property && value) {
+        this.chatWindow.style[property] = value;
+      }
+    });
+    
+    // Check for conflicts at this position
+    const widgetRect = this.chatWindow.getBoundingClientRect();
+    const conflictingSelectors = [
+      '.go-to-top',
+      '.scroll-to-top', 
+      '.back-to-top',
+      '.g-recaptcha',
+      '.recaptcha',
+      '[data-sitekey]',
+      '.floating-button',
+      '.fixed-bottom-right',
+      '.chat-widget',
+      '.support-widget',
+      '.mchatbot-conflict-test'
+    ];
+    
+    let hasConflict = false;
+    conflictingSelectors.forEach(selector => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach(element => {
+        if (element !== this && this.elementsOverlap(widgetRect, element.getBoundingClientRect())) {
+          hasConflict = true;
+        }
+      });
+    });
+    
+    // Restore original styles
+    Object.keys(originalStyles).forEach(property => {
+      this.chatWindow.style[property] = originalStyles[property];
+    });
+    
+    return hasConflict;
+  }
+
+  setupCollisionDetection() {
+    // Check for conflicts every 2 seconds
+    setInterval(() => {
+      this.detectAndAvoidConflicts();
+    }, 2000);
+    
+    // Also check on window resize
+    window.addEventListener('resize', () => {
+      this.detectAndAvoidConflicts();
+    });
+  }
+
   connectWebSocket(firstMessage = null) {
     try {
       // Use namespace as query parameter instead of path
@@ -863,6 +1013,16 @@ class MChatBotWidget extends HTMLElement {
       console.warn("⚠️ WebSocket is not connected. Retrying...");
       setTimeout(() => this.sendMessage(message), 1000);
     }
+  }
+
+  getPositionStyles() {
+    const positionStyles = {
+      "bottom-right": "bottom: 20px; right: 20px;",
+      "bottom-left": "bottom: 20px; left: 20px;",
+      "top-right": "top: 20px; right: 20px;",
+      "top-left": "top: 20px; left: 20px;"
+    };
+    return positionStyles[this.widgetPosition] || "bottom: 20px; right: 20px;";
   }
 }
 
