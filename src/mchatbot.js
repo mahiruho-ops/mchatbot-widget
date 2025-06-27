@@ -21,8 +21,8 @@ class MChatBotWidget extends HTMLElement {
     this.widgetHeight = "70%"; // default height
     const is_ssl = import.meta.env.VITE_IS_SSL === "true";
     const api_domain = import.meta.env.VITE_API_DOMAIN;
-    this.apiEndpoint = `${is_ssl ? "https" : "http"}://${api_domain}/api/mchatbot`;
-    this.socketPath = `${is_ssl ? "wss" : "ws"}://${api_domain}/api/ws`;
+    this.apiEndpoint = `${is_ssl ? "https" : "http"}://${api_domain}/mchatbot/public`;
+    this.socketPath = `${is_ssl ? "wss" : "ws"}://${api_domain}/mchatbot/ws`;
     this.errorMessage = "";
     this.attachShadow({ mode: "open" });
     this.domain_name = window.location.hostname;  
