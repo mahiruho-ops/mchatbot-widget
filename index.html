@@ -215,7 +215,8 @@
     email="user@example.com"
     name="User Name"
     session-mode="tab"
-    height="70%"&gt;
+    height="70%"
+    position="bottom-right"&gt;
 &lt;/mchatbot-widget&gt;
                 </div>
                 <button class="copy-btn" onclick="copyCode(this)">Copy Code</button>
@@ -269,6 +270,12 @@
                             <td>70%</td>
                             <td>Widget height (px, %, vh)</td>
                         </tr>
+                        <tr>
+                            <td><code>position</code></td>
+                            <td>string</td>
+                            <td>bottom-right</td>
+                            <td>Widget position (bottom-right, bottom-left, top-right, top-left)</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -291,6 +298,10 @@
                 <h3>🔧 Flexible</h3>
                 <p>Customizable height and multiple configuration options</p>
             </div>
+            <div class="feature">
+                <h3>🎯 Smart Positioning</h3>
+                <p>Automatically avoids conflicts with existing page elements</p>
+            </div>
         </div>
 
         <div class="demo-section">
@@ -306,6 +317,28 @@
                 session-mode="tab"
                 height="400px">
             </mchatbot-widget>
+        </div>
+
+        <!-- Dummy conflict element for testing -->
+        <div class="mchatbot-conflict-test" style="
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: #ff4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            z-index: 999998;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        " onclick="this.style.display='none'; console.log('Conflict element removed')">
+            ⚠️
         </div>
 
         <div class="card">
@@ -331,7 +364,8 @@
         email="user@example.com"
         name="User Name"
         session-mode="tab"
-        height="70%"&gt;
+        height="70%"
+        position="bottom-right"&gt;
     &lt;/mchatbot-widget&gt;
 &lt;/body&gt;
 &lt;/html&gt;
