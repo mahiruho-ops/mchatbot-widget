@@ -34,8 +34,10 @@ app.use('/mchatbot-widget', express.static(path.join(__dirname, 'dist'), {
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     
-    // Cache control for better performance
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+    // No-cache to ensure clients always get fresh widget files
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
   }
 }));
 
