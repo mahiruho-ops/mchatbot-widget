@@ -26,7 +26,7 @@ class MChatBotWidget extends HTMLElement {
     this.socketPath = `${is_ssl ? "wss" : "ws"}://${api_domain}/ws`;
     this.errorMessage = "";
     this.attachShadow({ mode: "open" });
-    this.domain_name = window.location.hostname;  
+    this.domain_name = window.location.hostname === "localhost" ? "mahiruho.com" : window.location.hostname;
   }
 
   connectedCallback() {
@@ -168,6 +168,7 @@ class MChatBotWidget extends HTMLElement {
       <div class="chatbot-messages">
           
       </div>
+      
       <form class="chatbot-input">
         <div class="input-container">
           <textarea rows="3" placeholder="Type a message..."></textarea>
@@ -178,7 +179,10 @@ class MChatBotWidget extends HTMLElement {
               <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
             </svg>
           </button>
-          <div class="submit-info">Press Ctrl + Enter to send</div>
+          <div class="session-controls">
+            <div class="submit-info">Press Ctrl + Enter to send</div>
+            <button type="button" class="end-session-btn">End this session</button>
+        </div>
           <button type="submit" class="send-button">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -374,6 +378,8 @@ class MChatBotWidget extends HTMLElement {
         flex-grow: 1;
         overflow-y: auto;
         padding: 10px;
+        display: flex;
+        flex-direction: column;
       }
       .message {
         max-width: 80%;
@@ -383,6 +389,8 @@ class MChatBotWidget extends HTMLElement {
         line-height: 1.4;
         position: relative;
         animation: bubble-in 0.5s ease-out;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
       }
       @keyframes bubble-in {
         0% {
@@ -395,17 +403,18 @@ class MChatBotWidget extends HTMLElement {
         }
       }
       .message.user {
-        background-color: var(--message-bg-user);
+        /* background-color: var(--message-bg-user); */
         color: var(--text-color);
         align-self: flex-end;
         margin-left: auto;
+        text-align: right;
       }
       .message.bot {
         padding: 0 12px;
         /* background-color: var(--message-bg-bot); */
-        
         color: var(--text-color);
         align-self: flex-start;
+        text-align: left;
       }
       .message-tool {
         font-size: 0.7em;
@@ -442,13 +451,31 @@ class MChatBotWidget extends HTMLElement {
         color: #888;
         font-size: 0.8em;
       }
-      .chatbot-input {
-        display: flex;
-        flex-direction: column;
-        padding: 20px;
-        background-color: var(--chat-input-bg);
-        border-top: 1px solid ${this.isDarkMode ? "#444" : "#eee"};
-      }
+              .session-controls {
+          padding: 10px 20px;
+          background-color: var(--chat-input-bg);
+          border-top: 1px solid ${this.isDarkMode ? "#444" : "#eee"};
+          text-align: center;
+        }
+        .end-session-btn {
+          background: none;
+          border: none;
+          color: #ff4444;
+          cursor: pointer;
+          
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+        .end-session-btn:hover {
+          text-decoration: underline;
+        }
+        .chatbot-input {
+          display: flex;
+          flex-direction: column;
+          padding: 20px;
+          background-color: var(--chat-input-bg);
+          border-top: 1px solid ${this.isDarkMode ? "#444" : "#eee"};
+        }
       .input-container {
         position: relative;
         margin-bottom: 8px;
@@ -568,6 +595,12 @@ class MChatBotWidget extends HTMLElement {
       this.inputForm.addEventListener("submit", (e) => this.handleSubmit(e));
       const textarea = this.inputForm.querySelector("textarea");
       textarea.addEventListener("keydown", (e) => this.handleKeyDown(e));
+
+      // Add end session button event listener
+      const endSessionBtn = this.shadowRoot.querySelector(".end-session-btn");
+      if (endSessionBtn) {
+        endSessionBtn.addEventListener("click", () => this.clearSession());
+      }
 
       // this.shadowRoot
       //   .querySelector(".tool-button.copy")
@@ -1024,6 +1057,43 @@ class MChatBotWidget extends HTMLElement {
       "top-left": "top: 20px; left: 20px;"
     };
     return positionStyles[this.widgetPosition] || "bottom: 20px; right: 20px;";
+  }
+
+  async clearSession() {
+    if (!this.sessionId) {
+      console.log("No active session to clear");
+      return;
+    }
+
+    try {
+      // Call the backend endpoint to terminate the session
+      const response = await fetch(`${this.apiEndpoint}/session/${this.sessionId}?domain=${this.domain_name}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        console.log("✅ Session terminated successfully");
+      } else {
+        console.warn("⚠️ Failed to terminate session on backend:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ Error terminating session:", error);
+    }
+
+    // Clear local session data regardless of backend response
+    this.storage.removeItem('mchatbot_session_id');
+    this.sessionId = null;
+    this.userId = null;
+    
+    // Reset to starter form
+    this.isStarted = false;
+    this.render();
+    this.setupEventListeners();
+    
+    console.log("🔄 Session cleared, ready for new chat");
   }
 }
 
