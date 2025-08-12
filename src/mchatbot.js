@@ -170,25 +170,24 @@ class MChatBotWidget extends HTMLElement {
       </div>
       
       <form class="chatbot-input">
-        <div class="input-container">
-          <textarea rows="3" placeholder="Type a message..."></textarea>
-        </div>
-        <div class="button-container">
-          <button type="button" class="attach-button">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
-            </svg>
-          </button>
-          <div class="session-controls">
-            <div class="submit-info">Press Ctrl + Enter to send</div>
-            <button type="button" class="end-session-btn">End this session</button>
-        </div>
-          <button type="submit" class="send-button">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+        <div class="input-row">
+          <div class="input-container">
+            <textarea rows="3" placeholder="Press Ctrl + Enter to send"></textarea>
+          </div>
+          <div class="button-container">
+            <button type="button" class="end-session-btn" title="End this session">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="4" y1="4" x2="20" y2="20"></line>
+                <line x1="20" y1="4" x2="4" y2="20"></line>
+              </svg>
+            </button>
+            <button type="submit" class="send-button" title="Send message">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
         </div>
       </form>
     `;
@@ -343,29 +342,44 @@ class MChatBotWidget extends HTMLElement {
   }
 
   getExistingStyles() {
+    // background-color: rgba(255, 255, 255, 0.9);
+    //     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    // transform: rotate(-45deg);
+
+    // transform: rotate(-45deg) scale(1.2);
     return `
       .resize-handle {
         position: absolute;
         left: -2px;
-        top: 0;
-        width: 4px;
-        height: 100%;
-        cursor: ew-resize;
-        background-color: transparent;
+        top: -2px;
+        width: 16px;
+        height: 16px;
+        cursor: nw-resize;
+        
+        border: 2px solid var(--theme-color);
+        border-radius: 3px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .resize-handle::after {
-        content: "⋮|";
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        color: var(--theme-color);
-        font-size: 30px;
-        opacity: 0.5;
-        transition: opacity 0.2s;
+        content: "⤡";
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+        line-height: 1;
+        
+        transition: all 0.2s ease;
+      }
+      .resize-handle:hover {
+        background-color: rgba(255, 255, 255, 1);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+        transform: scale(1.1);
       }
       .resize-handle:hover::after {
-        opacity: 1;
+        
+        color: var(--theme-color);
       }
       .chatbot-container.minimized {
         min-width: 80px;
@@ -408,6 +422,7 @@ class MChatBotWidget extends HTMLElement {
         align-self: flex-end;
         margin-left: auto;
         text-align: right;
+        min-width: 100px;
       }
       .message.bot {
         padding: 0 12px;
@@ -415,6 +430,7 @@ class MChatBotWidget extends HTMLElement {
         color: var(--text-color);
         align-self: flex-start;
         text-align: left;
+        min-width: 100px;
       }
       .message-tool {
         font-size: 0.7em;
@@ -451,35 +467,36 @@ class MChatBotWidget extends HTMLElement {
         color: #888;
         font-size: 0.8em;
       }
-              .session-controls {
-          padding: 10px 20px;
-          background-color: var(--chat-input-bg);
-          border-top: 1px solid ${this.isDarkMode ? "#444" : "#eee"};
-          text-align: center;
-        }
         .end-session-btn {
           background: none;
           border: none;
           color: #ff4444;
           cursor: pointer;
-          
           font-size: 14px;
           transition: all 0.2s ease;
+          padding: 5px 8px;
+          border-radius: 4px;
         }
         .end-session-btn:hover {
           text-decoration: underline;
+          background-color: rgba(255, 68, 68, 0.1);
         }
         .chatbot-input {
           display: flex;
           flex-direction: column;
-          padding: 20px;
+          padding: 10px;
           background-color: var(--chat-input-bg);
           border-top: 1px solid ${this.isDarkMode ? "#444" : "#eee"};
         }
-      .input-container {
-        position: relative;
-        margin-bottom: 8px;
-      }
+        .input-row {
+          display: flex;
+          align-items: flex-end;
+          gap: 10px;
+        }
+        .input-container {
+          position: relative;
+          flex: 1;
+        }
       .chatbot-input textarea {
         width: 100%;
         
@@ -497,11 +514,12 @@ class MChatBotWidget extends HTMLElement {
       }
       .button-container {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 0 5px;
+        gap: 8px;
+        flex-shrink: 0;
+        flex-direction: column-reverse;
       }
-      .attach-button, .send-button {
+      .send-button {
         background: none;
         border: none;
         cursor: pointer;
@@ -510,11 +528,6 @@ class MChatBotWidget extends HTMLElement {
         display: flex;
         align-items: center;
         gap: 5px;
-      }
-      .submit-info {
-        font-size: 0.8em;
-        color: #888;
-        text-align: center;
       }
       .floating-icon {
         display: none;
@@ -557,11 +570,9 @@ class MChatBotWidget extends HTMLElement {
           right: 0;
           border-radius: 0;
         }
-        .submit-info {
-          display: none;
-        }
+
         .resize-handle {
-          display: none;
+          display: none !important;
         }
       }
     `;
@@ -723,28 +734,59 @@ class MChatBotWidget extends HTMLElement {
 
   setupResizeListener() {
     let isResizing = false;
-    let startX;
-    let startWidth;
+    let resizeType = null; // 'width' or 'height'
+    let startX, startY;
+    let startWidth, startHeight;
 
     const startResize = (e) => {
       e.preventDefault();
       isResizing = true;
+      
+      // Determine if we're resizing width or height based on mouse position
+      const rect = this.resizeHandle.getBoundingClientRect();
+      const isNearLeft = Math.abs(e.clientX - rect.left) < 10;
+      const isNearTop = Math.abs(e.clientY - rect.top) < 10;
+      
+      if (isNearLeft && isNearTop) {
+        resizeType = 'both'; // Corner resize - both width and height
+      } else if (isNearLeft) {
+        resizeType = 'width'; // Left edge - width only
+      } else if (isNearTop) {
+        resizeType = 'height'; // Top edge - height only
+      } else {
+        resizeType = 'both'; // Default to both for corner
+      }
+      
       startX = e.clientX;
+      startY = e.clientY;
       startWidth = Number.parseInt(getComputedStyle(this.chatWindow).width, 10);
+      startHeight = Number.parseInt(getComputedStyle(this.chatWindow).height, 10);
+      
       document.addEventListener("mousemove", resize);
       document.addEventListener("mouseup", stopResize);
     };
 
     const resize = (e) => {
       if (!isResizing) return;
-      const width = startWidth - (e.clientX - startX);
-      if (width >= 350) {
-        this.chatWindow.style.width = `${width}px`;
+      
+      if (resizeType === 'width' || resizeType === 'both') {
+        const width = startWidth - (e.clientX - startX);
+        if (width >= 350) {
+          this.chatWindow.style.width = `${width}px`;
+        }
+      }
+      
+      if (resizeType === 'height' || resizeType === 'both') {
+        const height = startHeight - (e.clientY - startY);
+        if (height >= 400) {
+          this.chatWindow.style.height = `${height}px`;
+        }
       }
     };
 
     const stopResize = () => {
       isResizing = false;
+      resizeType = null;
       document.removeEventListener("mousemove", resize);
       document.removeEventListener("mouseup", stopResize);
     };
@@ -894,11 +936,14 @@ class MChatBotWidget extends HTMLElement {
   repositionWidget() {
     const positions = [
       { position: "bottom-right", styles: "bottom: 20px; right: 20px;" },
+      { position: "bottom-extra-right", styles: "bottom: 20px; right: 100px;" },  // More to the left
+      { position: "bottom-right-extra-up", styles: "bottom: 80px; right: 20px;" }, // Higher up
+      { position: "bottom-right-more-up", styles: "bottom: 120px; right: 20px;" }, // Higher up
       { position: "bottom-left", styles: "bottom: 20px; left: 20px;" },
       { position: "top-right", styles: "top: 20px; right: 20px;" },
       { position: "top-left", styles: "top: 20px; left: 20px;" },
-      { position: "bottom-right", styles: "bottom: 80px; right: 20px;" }, // Higher up
-      { position: "bottom-right", styles: "bottom: 20px; right: 100px;" }  // More to the left
+      
+      
     ];
     
     for (let pos of positions) {
@@ -1050,12 +1095,22 @@ class MChatBotWidget extends HTMLElement {
   }
 
   getPositionStyles() {
-    const positionStyles = {
-      "bottom-right": "bottom: 20px; right: 20px;",
-      "bottom-left": "bottom: 20px; left: 20px;",
-      "top-right": "top: 20px; right: 20px;",
-      "top-left": "top: 20px; left: 20px;"
-    };
+    // { position: "bottom-right", styles: "bottom: 20px; right: 20px;" },
+    // { position: "bottom-extra-right", styles: "bottom: 20px; right: 100px;" },  // More to the left
+    // { position: "bottom-right-extra-up", styles: "bottom: 80px; right: 20px;" }, // Higher up
+    // { position: "bottom-right-more-up", styles: "bottom: 120px; right: 20px;" }, // Higher up
+    // { position: "bottom-left", styles: "bottom: 20px; left: 20px;" },
+    // { position: "top-right", styles: "top: 20px; right: 20px;" },
+    // { position: "top-left", styles: "top: 20px; left: 20px;" },
+      const positionStyles = {
+        "bottom-right": "bottom: 20px; right: 20px;",
+        "bottom-extra-right": "bottom: 20px; right: 100px;",
+        "bottom-right-extra-up": "bottom: 80px; right: 20px;",
+        "bottom-right-more-up": "bottom: 120px; right: 20px;",
+        "bottom-left": "bottom: 20px; left: 20px;",
+        "top-right": "top: 20px; right: 20px;",
+        "top-left": "top: 20px; left: 20px;"
+      };
     return positionStyles[this.widgetPosition] || "bottom: 20px; right: 20px;";
   }
 
