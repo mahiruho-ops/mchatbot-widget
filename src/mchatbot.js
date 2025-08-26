@@ -205,7 +205,7 @@ class MChatBotWidget extends HTMLElement {
           --message-bg-user: ${this.isDarkMode ? "#4a4a4a" : "#e6e6e6"};
           --message-bg-bot: var(--theme-color);
           --chat-input-bg: ${this.isDarkMode ? "#2a2a2a" : "#f8f8f8"};
-          font-family: Arial, sans-serif;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .chatbot-container {
           position: fixed;
@@ -421,7 +421,7 @@ class MChatBotWidget extends HTMLElement {
         color: var(--text-color);
         align-self: flex-end;
         margin-left: auto;
-        text-align: right;
+        text-align: left;
         min-width: 100px;
       }
       .message.bot {
