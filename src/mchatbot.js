@@ -1681,7 +1681,27 @@ class MChatBotWidget extends HTMLElement {
 
   async actuallyStartRecording() {
     try {
-      await this.audioRecorder.start();
+      if (this.useSimpleAudioRecorder && this.audioRecorder) {
+        // Use simple-audio-recorder
+        await this.audioRecorder.start();
+      } else if (this.audioStream) {
+        // Use native MediaRecorder
+        this.nativeRecorder = new MediaRecorder(this.audioStream, {
+          mimeType: this.nativeMimeType,
+          audioBitsPerSecond: 64000
+        });
+        
+        this.audioChunks = [];
+        this.nativeRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            this.audioChunks.push(event.data);
+          }
+        };
+        
+        this.nativeRecorder.start();
+      } else {
+        throw new Error('No audio recording method available');
+      }
       
       this.isRecording = true;
       this.recordingStartTime = Date.now();
@@ -1689,14 +1709,12 @@ class MChatBotWidget extends HTMLElement {
       const voiceBtn = this.shadowRoot.querySelector('.voice-record-btn');
       const voiceBtnText = this.shadowRoot.querySelector('.voice-btn-text');
       const recordingTimer = this.shadowRoot.querySelector('.recording-timer');
-      // const recordingStatus = this.shadowRoot.querySelector('.recording-status');
 
       if (voiceBtn) {
         voiceBtn.classList.remove('countdown');
         voiceBtn.classList.add('recording');
         voiceBtnText.textContent = 'Recording...';
         recordingTimer.textContent = '00:00';
-        // recordingStatus.style.display = 'flex';
       }
 
       // Start recording timer
@@ -1713,6 +1731,56 @@ class MChatBotWidget extends HTMLElement {
     } catch (error) {
       console.error("❌ Failed to start voice recording:", error);
       this.addMessage("bot", "Sorry, failed to start voice recording. Please try again.");
+    }
+  }
+
+  async stopVoiceRecording() {
+    if (!this.isRecording) {
+      return;
+    }
+
+    try {
+      let audioBlob = null;
+      
+      if (this.useSimpleAudioRecorder && this.audioRecorder) {
+        // Stop simple-audio-recorder
+        audioBlob = await this.audioRecorder.stop();
+      } else if (this.nativeRecorder && this.nativeRecorder.state === 'recording') {
+        // Stop native MediaRecorder
+        return new Promise((resolve) => {
+          this.nativeRecorder.onstop = () => {
+            audioBlob = new Blob(this.audioChunks, { type: this.nativeMimeType });
+            resolve();
+          };
+          this.nativeRecorder.stop();
+        });
+      }
+      
+      this.isRecording = false;
+      
+      // Clear timers
+      if (this.recordingTimer) {
+        clearInterval(this.recordingTimer);
+        this.recordingTimer = null;
+      }
+      if (this.countdownTimer) {
+        clearInterval(this.countdownTimer);
+        this.countdownTimer = null;
+      }
+
+      // Reset UI
+      this.resetVoiceRecordingUI();
+
+      // Send audio message
+      if (audioBlob) {
+        await this.sendVoiceMessage(audioBlob);
+      }
+
+      console.log("✅ Voice recording stopped and sent");
+    } catch (error) {
+      console.error("❌ Failed to stop voice recording:", error);
+      this.addMessage("bot", "Sorry, failed to process voice recording. Please try again.");
+      this.resetVoiceRecordingUI();
     }
   }
 
