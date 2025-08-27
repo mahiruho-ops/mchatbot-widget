@@ -1585,26 +1585,61 @@ class MChatBotWidget extends HTMLElement {
       // Import the library dynamically
       const AudioRecorder = await import('simple-audio-recorder');
       
-      // Preload the MP3 encoder worker
-      await AudioRecorder.default.preload('./mp3worker.js');
+      // Try different paths for the MP3 worker
+      const workerPaths = [
+        './mp3worker.js',
+        '/mp3worker.js',
+        `${window.location.origin}/mp3worker.js`,
+        `${window.location.origin}/public/mp3worker.js`
+      ];
+      
+      let workerLoaded = false;
+      for (const path of workerPaths) {
+        try {
+          console.log(`�� Trying to load MP3 worker from: ${path}`);
+          await AudioRecorder.default.preload(path);
+          console.log(`✅ MP3 worker loaded successfully from: ${path}`);
+          workerLoaded = true;
+          break;
+        } catch (workerError) {
+          console.warn(`⚠️ Failed to load MP3 worker from ${path}:`, workerError);
+        }
+      }
+      
+      if (!workerLoaded) {
+        throw new Error('Failed to load MP3 worker from all attempted paths');
+      }
       
       // Create the audio recorder instance
       this.audioRecorder = new AudioRecorder.default({
         recordingGain: 1,
-        encoderBitRate: 96,
+        encoderBitRate: 64, // Reduced bitrate for better compatibility
         streaming: false,
         constraints: {
           channelCount: 1,
           autoGainControl: true,
           echoCancellation: true,
-          noiseSuppression: true
+          noiseSuppression: true,
+          sampleRate: 44100 // Explicit sample rate
         }
       });
 
       console.log("✅ Audio recorder initialized successfully");
     } catch (error) {
       console.error("❌ Failed to initialize audio recorder:", error);
-      this.addMessage("bot", "Sorry, voice recording is not available in your browser.");
+      
+      // Provide more helpful error messages
+      if (error.message.includes('MP3 worker')) {
+        this.addMessage("bot", "Voice recording setup failed: MP3 encoder not available. Please check if mp3worker.js is accessible.");
+      } else if (error.message.includes('getUserMedia')) {
+        this.addMessage("bot", "Microphone access denied. Please allow microphone permissions and try again.");
+      } else {
+        this.addMessage("bot", "Voice recording is not available in your browser. Please use text chat instead.");
+      }
+      
+      // Disable voice mode if initialization fails
+      this.mode = "chat";
+      this.swapInputInterface();
     }
   }
 
