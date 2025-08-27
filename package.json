@@ -20,9 +20,10 @@
     "test-subpath": "node test-subpath.js"
   },
   "dependencies": {
-    "marked": "^15.0.7",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "marked": "^15.0.7",
+    "simple-audio-recorder": "^1.2.4"
   },
   "devDependencies": {
     "vite": "^6.3.5"

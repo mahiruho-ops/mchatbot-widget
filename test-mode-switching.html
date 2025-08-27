@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mode Switching</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .log-container {
+            background: #f8f8f8;
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status.connected { background: #d4edda; color: #155724; }
+        .status.disconnected { background: #f8d7da; color: #721c24; }
+        .status.connecting { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 WebSocket Mode Switching Test</h1>
+        
+        <div class="test-section">
+            <h3>Test Instructions:</h3>
+            <ol>
+                <li>Start a chat session (fill out the form)</li>
+                <li>Send a text message to verify chat mode works</li>
+                <li>Switch to voice mode using the 🎙️ button</li>
+                <li>Send a voice message to verify voice mode works</li>
+                <li>Switch back to chat mode using the 💬 button</li>
+                <li>Send another text message to see if it works</li>
+                <li>Check the logs below for any errors</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>Current Status:</h3>
+            <div id="connectionStatus" class="status disconnected">Disconnected</div>
+            <div id="currentMode" class="status">Mode: Not Started</div>
+        </div>
+
+        <div class="test-section">
+            <h3>Debug Controls:</h3>
+            <button onclick="checkWebSocketState()">Check WebSocket State</button>
+            <button onclick="clearLogs()">Clear Logs</button>
+            <button onclick="testPing()">Test Ping</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Console Logs:</h3>
+            <div id="logContainer" class="log-container"></div>
+        </div>
+    </div>
+
+    <!-- Include the chatbot widget -->
+    <mchatbot-widget 
+        email="test@example.com" 
+        name="Test User"
+        theme-color="#701FAB"
+        height="500px"
+        position="bottom-right">
+    </mchatbot-widget>
+
+    <script type="module">
+        import './dist/mchatbot.js';
+
+        // Intercept console methods to show logs in our container
+        const logContainer = document.getElementById('logContainer');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const currentMode = document.getElementById('currentMode');
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> <span style="color: ${type === 'error' ? 'red' : type === 'warn' ? 'orange' : 'black'}">${message}</span>`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Override console methods
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'info');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLog(args.join(' '), 'warn');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'error');
+        };
+
+        // Wait for widget to be ready
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const widget = document.querySelector('mchatbot-widget');
+                if (widget && widget.shadowRoot) {
+                    addLog('✅ Widget loaded successfully');
+                    updateStatus();
+                } else {
+                    addLog('❌ Widget not found or not ready');
+                }
+            }, 1000);
+        });
+
+        // Update connection status
+        function updateStatus() {
+            const widget = document.querySelector('mchatbot-widget');
+            if (widget && widget.shadowRoot) {
+                const ws = widget.ws;
+                if (ws) {
+                    const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+                    const state = states[ws.readyState];
+                    
+                    if (ws.readyState === WebSocket.OPEN) {
+                        connectionStatus.className = 'status connected';
+                        connectionStatus.textContent = `Connected (${state})`;
+                    } else if (ws.readyState === WebSocket.CONNECTING) {
+                        connectionStatus.className = 'status connecting';
+                        connectionStatus.textContent = `Connecting (${state})`;
+                    } else {
+                        connectionStatus.className = 'status disconnected';
+                        connectionStatus.textContent = `Disconnected (${state})`;
+                    }
+                } else {
+                    connectionStatus.className = 'status disconnected';
+                    connectionStatus.textContent = 'No WebSocket';
+                }
+
+                // Update current mode
+                if (widget.mode) {
+                    currentMode.textContent = `Mode: ${widget.mode}`;
+                }
+            }
+        }
+
+        // Global functions for debug controls
+        window.checkWebSocketState = function() {
+            const widget = document.querySelector('mchatbot-widget');
+            if (widget && widget.ws) {
+                const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+                const state = states[widget.ws.readyState];
+                addLog(`WebSocket State: ${state} (${widget.ws.readyState})`);
+                addLog(`WebSocket URL: ${widget.ws.url}`);
+                addLog(`Current Mode: ${widget.mode}`);
+            } else {
+                addLog('No WebSocket connection found');
+            }
+            updateStatus();
+        };
+
+        window.clearLogs = function() {
+            logContainer.innerHTML = '';
+            addLog('Logs cleared');
+        };
+
+        window.testPing = function() {
+            const widget = document.querySelector('mchatbot-widget');
+            if (widget && widget.ws && widget.ws.readyState === WebSocket.OPEN) {
+                addLog('Testing ping...');
+                widget.ws.send(JSON.stringify({ type: 'ping', timestamp: Date.now() }));
+            } else {
+                addLog('Cannot send ping - WebSocket not connected');
+            }
+        };
+
+        // Update status every 2 seconds
+        setInterval(updateStatus, 2000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Messages Demo - mChatBot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .demo-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .demo-header {
+            background: linear-gradient(135deg, #701FAB 0%, #9B4DDB 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .demo-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        
+        .demo-header p {
+            margin: 10px 0 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .demo-content {
+            padding: 40px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #701FAB;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #701FAB;
+        }
+        
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .demo-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .demo-section h3 {
+            color: #701FAB;
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .message-example {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .message-example.user {
+            border-left: 4px solid #701FAB;
+        }
+        
+        .message-example.bot {
+            border-left: 4px solid #38a169;
+        }
+        
+        .message-content {
+            margin-bottom: 10px;
+        }
+        
+        .message-audio {
+            background: rgba(112, 31, 171, 0.1);
+            border: 1px solid rgba(112, 31, 171, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        
+        .audio-player {
+            width: 100%;
+            max-width: 300px;
+            height: 40px;
+            background: #f1f3f4;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+        }
+        
+        .audio-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .message-transcription {
+            background: rgba(112, 31, 171, 0.1);
+            border-left: 3px solid #701FAB;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #666;
+            font-style: italic;
+            margin-top: 8px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #701FAB 0%, #9B4DDB 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin: 20px 0;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(112, 31, 171, 0.3);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🎤 Audio Messages Demo</h1>
+            <p>Enhanced voice chat with rich audio content display</p>
+        </div>
+        
+        <div class="demo-content">
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎵</div>
+                    <div class="feature-title">Audio Players</div>
+                    <div class="feature-description">
+                        Native HTML5 audio players embedded directly in chat messages for seamless voice playback.
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <div class="feature-title">Transcriptions</div>
+                    <div class="feature-description">
+                        Display user voice message transcriptions alongside audio content for better accessibility.
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <div class="feature-title">Mixed Content</div>
+                    <div class="feature-description">
+                        Support for messages containing both text and audio content simultaneously.
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <div class="feature-title">Rich Styling</div>
+                    <div class="feature-description">
+                        Beautiful, responsive design with theme-aware colors and smooth animations.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="demo-section">
+                <h3>🚀 New Message Format</h3>
+                <p>The <code>addMessage()</code> method now supports audio content and transcriptions:</p>
+                
+                <div class="code-block">
+addMessage(sender, content, timestamp, audioContent, transcription)
+
+// Examples:
+addMessage("user", "Hello!", timestamp, audioBlob, "Hello!");
+addMessage("bot", "Here's your response", timestamp, base64Audio, null);
+addMessage("bot", "Voice reply", timestamp, audioData, "Voice reply");
+                </div>
+            </div>
+            
+            <div class="demo-section">
+                <h3>💬 Message Examples</h3>
+                
+                <div class="message-example user">
+                    <div class="message-content">
+                        <strong>User:</strong> 🎤 Voice message sent
+                    </div>
+                    <div class="message-audio">
+                        <audio class="audio-player" controls>
+                            <source src="data:audio/mpeg;base64,example" type="audio/mpeg">
+                        </audio>
+                        <div class="audio-info">
+                            <span>🎵</span>
+                            <span>Voice Message</span>
+                        </div>
+                    </div>
+                    <div class="message-transcription">
+                        🎤 "Hello, this is my voice message"
+                    </div>
+                </div>
+                
+                <div class="message-example bot">
+                    <div class="message-content">
+                        <strong>Bot:</strong> Here's my voice response with transcription
+                    </div>
+                    <div class="message-audio">
+                        <audio class="audio-player" controls>
+                            <source src="data:audio/mpeg;base64,example" type="audio/mpeg">
+                        </audio>
+                        <div class="audio-info">
+                            <span>🎵</span>
+                            <span>Voice Message</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="message-example bot">
+                    <div class="message-content">
+                        <strong>Bot:</strong> Mixed message with both text and audio content
+                    </div>
+                    <div class="message-audio">
+                        <audio class="audio-player" controls>
+                            <source src="data:audio/mpeg;base64,example" type="audio/mpeg">
+                        </audio>
+                        <div class="audio-info">
+                            <span>🎵</span>
+                            <span>Voice Message</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="demo-section">
+                <h3>🔧 WebSocket Message Types</h3>
+                <p>The chatbot now handles different message types from the backend:</p>
+                
+                <div class="code-block">
+// Voice message with audio
+{
+  "type": "voice",
+  "audio": "base64_audio_data",
+  "text": "Voice response text",
+  "transcription": "Transcribed audio content"
+}
+
+// Mixed message with text and audio
+{
+  "type": "mixed",
+  "audio": "base64_audio_data",
+  "text": "Text content",
+  "transcription": "Audio transcription"
+}
+
+// Regular text message
+{
+  "message": "Text response"
+}
+                </div>
+            </div>
+            
+            <div class="demo-section">
+                <h3>🎯 Key Features</h3>
+                <ul>
+                    <li><strong>Audio Support:</strong> Native HTML5 audio players with controls</li>
+                    <li><strong>Transcription Display:</strong> Show user voice message transcriptions</li>
+                    <li><strong>Mixed Content:</strong> Support for text + audio in single messages</li>
+                    <li><strong>Responsive Design:</strong> Audio players adapt to message width</li>
+                    <li><strong>Theme Integration:</strong> Audio elements use theme colors</li>
+                    <li><strong>Copy Functionality:</strong> Copy text content (excluding audio)</li>
+                    <li><strong>Timestamp Support:</strong> Accurate message timing</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="test-voice-chat.html" class="cta-button">🧪 Test Voice Chat</a>
+                <a href="demo-voice-chat.html" class="cta-button">🎤 View Voice Demo</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🎉 Enhanced voice chat experience with rich audio content display!</p>
+            <p>Built with ❤️ using mChatBot Widget</p>
+        </div>
+    </div>
+</body>
+</html>
