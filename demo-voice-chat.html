@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Chat Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .demo-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .demo-header {
+            margin-bottom: 40px;
+        }
+        .demo-header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .demo-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        .feature-card h3 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        .feature-card p {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+        .demo-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .demo-section h2 {
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+        .instructions {
+            text-align: left;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .instructions ol {
+            line-height: 1.8;
+            font-size: 1.1rem;
+        }
+        .instructions li {
+            margin-bottom: 10px;
+        }
+        .highlight {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .widget-container {
+            position: relative;
+            min-height: 400px;
+            margin: 20px 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .status-text {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🎤 Voice Chat Demo</h1>
+            <p>Experience the future of chatbot interaction with voice commands</p>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Press & Hold</h3>
+                <p>Simply press and hold the microphone button to start recording. The system includes a 3-second countdown for optimal preparation.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⏱️</div>
+                <h3>Smart Timing</h3>
+                <p>Automatic 30-second limit with real-time countdown display. Perfect for concise voice messages.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3>Seamless Switching</h3>
+                <p>Toggle between text and voice modes instantly without losing your chat session or context.</p>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🚀 Try It Now</h2>
+            <div class="status-text">
+                <span class="status-indicator"></span>
+                <span id="status-text">Ready to test voice chat functionality</span>
+            </div>
+            
+            <div class="instructions">
+                <h3>How to Test:</h3>
+                <ol>
+                    <li><span class="highlight">Initialize</span> the chatbot widget below</li>
+                    <li><span class="highlight">Start a chat session</span> by filling out the form</li>
+                    <li><span class="highlight">Switch to Voice mode</span> using the 🎙️ button in the header</li>
+                    <li><span class="highlight">Press & hold</span> the microphone button</li>
+                    <li><span class="highlight">Wait for countdown</span> (3 seconds)</li>
+                    <li><span class="highlight">Speak your message</span> (up to 30 seconds)</li>
+                    <li><span class="highlight">Release to send</span> your voice message</li>
+                </ol>
+            </div>
+
+            <div class="widget-container" id="widget-container">
+                <!-- Widget will be inserted here -->
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>💡 Features</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <h4>🎵 High Quality Audio</h4>
+                    <p>MP3 encoding with configurable bitrate and noise suppression</p>
+                </div>
+                <div class="feature-card">
+                    <h4>📱 Mobile Optimized</h4>
+                    <p>Touch-friendly interface with proper event handling for mobile devices</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔒 Privacy First</h4>
+                    <p>Audio processing happens locally with secure WebSocket transmission</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        let widget = null;
+        let isInitialized = false;
+
+        // Status management
+        function updateStatus(message, type = 'info') {
+            const statusElement = document.getElementById('status-text');
+            statusElement.textContent = message;
+            
+            const indicator = document.querySelector('.status-indicator');
+            if (type === 'success') {
+                indicator.style.backgroundColor = '#4CAF50';
+            } else if (type === 'error') {
+                indicator.style.backgroundColor = '#f44336';
+            } else if (type === 'warning') {
+                indicator.style.backgroundColor = '#ff9800';
+            } else {
+                indicator.style.backgroundColor = '#2196F3';
+            }
+        }
+
+        // Initialize widget
+        function initializeWidget() {
+            try {
+                if (isInitialized) return;
+
+                updateStatus('Creating widget...', 'info');
+                
+                // Create widget element
+                widget = document.createElement('mchatbot-widget');
+                widget.setAttribute('email', 'demo@example.com');
+                widget.setAttribute('name', 'Demo User');
+                widget.setAttribute('theme-color', '#701FAB');
+                widget.setAttribute('height', '70%');
+                widget.setAttribute('position', 'bottom-right');
+                
+                // Add to container
+                const container = document.getElementById('widget-container');
+                container.appendChild(widget);
+                
+                updateStatus('Widget created successfully!', 'success');
+                isInitialized = true;
+                
+                // Monitor widget state
+                setTimeout(() => {
+                    if (widget.shadowRoot) {
+                        updateStatus('Widget is ready! Start a chat session to test voice mode.', 'success');
+                        monitorWidgetState();
+                    } else {
+                        updateStatus('Widget loading...', 'warning');
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                updateStatus(`Error: ${error.message}`, 'error');
+                console.error('Widget initialization error:', error);
+            }
+        }
+
+        // Monitor widget state changes
+        function monitorWidgetState() {
+            if (!widget || !widget.shadowRoot) return;
+            
+            // Check for mode toggle button
+            const toggleBtn = widget.shadowRoot.querySelector('.toggle-chat-mode-btn');
+            if (toggleBtn) {
+                updateStatus('Widget ready! Click the 🎙️ button to switch to voice mode.', 'success');
+            } else {
+                // Widget might not be fully started yet
+                setTimeout(monitorWidgetState, 500);
+            }
+        }
+
+        // Auto-initialize after page load
+        window.addEventListener('load', () => {
+            setTimeout(initializeWidget, 1000);
+        });
+
+        // Listen for widget events
+        document.addEventListener('DOMContentLoaded', () => {
+            // Monitor for voice recording events
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList') {
+                        mutation.addedNodes.forEach((node) => {
+                            if (node.nodeType === Node.ELEMENT_NODE && 
+                                node.tagName === 'MCHATBOT-WIDGET') {
+                                updateStatus('Widget detected! Initializing...', 'info');
+                            }
+                        });
+                    }
+                });
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+
+        // Add some interactive elements
+        document.addEventListener('click', (e) => {
+            if (e.target.tagName === 'H3' || e.target.tagName === 'H4') {
+                e.target.style.color = '#ffd700';
+                setTimeout(() => {
+                    e.target.style.color = '';
+                }, 200);
+            }
+        });
+    </script>
+</body>
+</html>
