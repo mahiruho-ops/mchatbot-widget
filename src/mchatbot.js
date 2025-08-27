@@ -1592,12 +1592,12 @@ class MChatBotWidget extends HTMLElement {
         `${window.location.origin}/mp3worker.js`,
         `${window.location.origin}/public/mp3worker.js`
       ];
-      
+      console.log("workerPaths", workerPaths);
       let workerLoaded = false;
       for (const path of workerPaths) {
         try {
           console.log(`�� Trying to load MP3 worker from: ${path}`);
-          await AudioRecorder.default.preload(path);
+          await AudioRecorder.default.preload(`${window.location.origin}/mp3worker.js`);
           console.log(`✅ MP3 worker loaded successfully from: ${path}`);
           workerLoaded = true;
           break;
