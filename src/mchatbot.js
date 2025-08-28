@@ -463,7 +463,7 @@ class MChatBotWidget extends HTMLElement {
           }
         </div>
         <div class="floating-icon">
-         <img src="./chatbot.png" alt="mChatBot" width="32" height="32">
+         <img src="https://api.mretailstore.com/mchatbot-widget/chatbot.png" alt="mChatBot" width="40" height="40">
           
         </div>
       </div>
