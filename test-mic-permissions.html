@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Microphone Permissions & Recording Flow</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-info {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .test-info h3 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        .test-steps {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .test-steps ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .test-steps li {
+            margin-bottom: 8px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .permission-check {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .console-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎤 Test: Microphone Permissions & Recording Flow</h1>
+        
+        <div class="test-info">
+            <h3>Test Objective</h3>
+            <p>Verify that microphone permissions are checked upfront and the recording flow works correctly without double countdown calls.</p>
+        </div>
+
+        <div class="test-steps">
+            <h3>Test Steps</h3>
+            <ol>
+                <li>Load the chatbot widget and check console for permission check logs</li>
+                <li>Switch to voice chat mode (should show permission check in console)</li>
+                <li>Test voice recording flow (should work smoothly without errors)</li>
+                <li>Verify no double countdown or duplicate initialization</li>
+                <li>Check that recording indicator behavior is correct</li>
+            </ol>
+        </div>
+
+        <div class="permission-check">
+            <strong>🔍 Permission Check Features:</strong>
+            <ul>
+                <li><strong>Upfront Check:</strong> Microphone permissions checked when entering voice mode</li>
+                <li><strong>Browser Support:</strong> MediaRecorder support verified</li>
+                <li><strong>Permission State:</strong> Shows if mic access is granted/denied/pending</li>
+                <li><strong>Graceful Fallback:</strong> Handles permission errors gracefully</li>
+            </ul>
+        </div>
+
+        <div class="status info">
+            <strong>Status:</strong> Ready to test. The chatbot widget should be loaded below.
+        </div>
+
+        <!-- Chatbot Widget -->
+        <mchatbot-widget 
+            email="test@example.com" 
+            name="Test User" 
+            session-mode="session"
+            height="60%"
+            position="bottom-right">
+        </mchatbot-widget>
+
+        <div class="console-log">
+            <strong>Console Logs to Look For:</strong>
+            <ul>
+                <li>✅ "Microphone permission already granted" (if previously allowed)</li>
+                <li>ℹ️ "Microphone permission not yet determined" (if first time)</li>
+                <li>⚠️ "Microphone access denied by user" (if blocked)</li>
+                <li>✅ "Native MediaRecorder initialized with format: [format]" (when recording starts)</li>
+                <li>❌ No duplicate countdown or initialization errors</li>
+            </ul>
+        </div>
+
+        <div class="test-steps">
+            <h3>Expected Results</h3>
+            <ul>
+                <li>✅ Permission check runs when entering voice mode</li>
+                <li>✅ No double countdown calls</li>
+                <li>✅ Recording flow works smoothly</li>
+                <li>✅ Console shows clear permission status</li>
+                <li>✅ Recording indicator appears/disappears correctly</li>
+            </ul>
+        </div>
+
+        <div class="status info">
+            <strong>Note:</strong> This test verifies that we've fixed the double startCountdown issue and added proper microphone permission checking upfront.
+        </div>
+    </div>
+
+    <!-- Load the built chatbot -->
+    <script type="module" src="./dist/mchatbot.js"></script>
+</body>
+</html>
