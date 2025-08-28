@@ -1579,10 +1579,9 @@ class MChatBotWidget extends HTMLElement {
     }
   }
 
-  // Voice Recording Methods
   async initializeAudioRecorder() {
     try {
-      // Import the library dynamically
+      // First try simple-audio-recorder
       const AudioRecorder = await import('simple-audio-recorder');
       
       // Try different paths for the MP3 worker
@@ -1594,17 +1593,17 @@ class MChatBotWidget extends HTMLElement {
       ];
       
       let workerLoaded = false;
-      for (const path of workerPaths) {
-        try {
-          console.log(`�� Trying to load MP3 worker from: ${path}`);
-          await AudioRecorder.default.preload(path);
-          console.log(`✅ MP3 worker loaded successfully from: ${path}`);
-          workerLoaded = true;
-          break;
-        } catch (workerError) {
-          console.warn(`⚠️ Failed to load MP3 worker from ${path}:`, workerError);
-        }
-      }
+      // for (const path of workerPaths) {
+      //   try {
+      //     console.log(`�� Trying to load MP3 worker from: ${path}`);
+      //     await AudioRecorder.default.preload(path);
+      //     console.log(`✅ MP3 worker loaded successfully from: ${path}`);
+      //     workerLoaded = true;
+      //     break;
+      //   } catch (workerError) {
+      //     console.warn(`⚠️ Failed to load MP3 worker from ${path}:`, workerError);
+      //   }
+      // }
       
       if (!workerLoaded) {
         throw new Error('Failed to load MP3 worker from all attempted paths');
@@ -1613,38 +1612,70 @@ class MChatBotWidget extends HTMLElement {
       // Create the audio recorder instance
       this.audioRecorder = new AudioRecorder.default({
         recordingGain: 1,
-        encoderBitRate: 64, // Reduced bitrate for better compatibility
+        encoderBitRate: 64,
         streaming: false,
         constraints: {
           channelCount: 1,
           autoGainControl: true,
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 44100 // Explicit sample rate
+          sampleRate: 44100
         }
       });
 
       console.log("✅ Audio recorder initialized successfully");
+      this.useSimpleAudioRecorder = true;
+      
     } catch (error) {
-      console.error("❌ Failed to initialize audio recorder:", error);
+      console.warn("⚠️ Simple audio recorder failed, trying native MediaRecorder...", error);
       
-      // Provide more helpful error messages
-      if (error.message.includes('MP3 worker')) {
-        this.addMessage("bot", "Voice recording setup failed: MP3 encoder not available. Please check if mp3worker.js is accessible.");
-      } else if (error.message.includes('getUserMedia')) {
-        this.addMessage("bot", "Microphone access denied. Please allow microphone permissions and try again.");
-      } else {
-        this.addMessage("bot", "Voice recording is not available in your browser. Please use text chat instead.");
+      // Fallback to native MediaRecorder API
+      try {
+        await this.initializeNativeRecorder();
+        this.useSimpleAudioRecorder = false;
+      } catch (nativeError) {
+        console.error("❌ Both audio recording methods failed:", nativeError);
+        this.addMessage("bot", "Voice recording is not available. Please use text chat instead.");
+        this.mode = "chat";
+        this.swapInputInterface();
       }
-      
-      // Disable voice mode if initialization fails
-      this.mode = "chat";
-      this.swapInputInterface();
     }
   }
 
+  async initializeNativeRecorder() {
+    // Check if MediaRecorder is supported
+    if (!window.MediaRecorder) {
+      throw new Error('MediaRecorder not supported');
+    }
+    
+    // Check if we can get microphone access
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        channelCount: 1,
+        autoGainControl: true,
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 44100
+      } 
+    });
+    
+    // Store the stream for later use
+    this.audioStream = stream;
+    
+    // Check supported MIME types
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' :
+                    MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' :
+                    MediaRecorder.isTypeSupported('audio/ogg') ? 'audio/ogg' : '';
+    
+    if (!mimeType) {
+      throw new Error('No supported audio format found');
+    }
+    
+    this.nativeMimeType = mimeType;
+    console.log(`✅ Native MediaRecorder initialized with format: ${mimeType}`);
+  }
   startVoiceRecording() {
-    if (!this.audioRecorder) {
+    if (!this.audioRecorder && !this.audioStream) {
       console.error("Audio recorder not initialized");
       return;
     }
@@ -1681,7 +1712,27 @@ class MChatBotWidget extends HTMLElement {
 
   async actuallyStartRecording() {
     try {
-      await this.audioRecorder.start();
+      if (this.useSimpleAudioRecorder && this.audioRecorder) {
+        // Use simple-audio-recorder
+        await this.audioRecorder.start();
+      } else if (this.audioStream) {
+        // Use native MediaRecorder
+        this.nativeRecorder = new MediaRecorder(this.audioStream, {
+          mimeType: this.nativeMimeType,
+          audioBitsPerSecond: 64000
+        });
+        
+        this.audioChunks = [];
+        this.nativeRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            this.audioChunks.push(event.data);
+          }
+        };
+        
+        this.nativeRecorder.start();
+      } else {
+        throw new Error('No audio recording method available');
+      }
       
       this.isRecording = true;
       this.recordingStartTime = Date.now();
@@ -1689,14 +1740,12 @@ class MChatBotWidget extends HTMLElement {
       const voiceBtn = this.shadowRoot.querySelector('.voice-record-btn');
       const voiceBtnText = this.shadowRoot.querySelector('.voice-btn-text');
       const recordingTimer = this.shadowRoot.querySelector('.recording-timer');
-      // const recordingStatus = this.shadowRoot.querySelector('.recording-status');
 
       if (voiceBtn) {
         voiceBtn.classList.remove('countdown');
         voiceBtn.classList.add('recording');
         voiceBtnText.textContent = 'Recording...';
         recordingTimer.textContent = '00:00';
-        // recordingStatus.style.display = 'flex';
       }
 
       // Start recording timer
@@ -1716,6 +1765,8 @@ class MChatBotWidget extends HTMLElement {
     }
   }
 
+ 
+
   startRecordingTimer() {
     this.recordingTimer = setInterval(() => {
       if (this.isRecording) {
@@ -1733,13 +1784,26 @@ class MChatBotWidget extends HTMLElement {
   }
 
   async stopVoiceRecording() {
-    if (!this.isRecording || !this.audioRecorder) {
+    if (!this.isRecording) {
       return;
     }
 
     try {
-      // Stop recording
-      const mp3Blob = await this.audioRecorder.stop();
+      let audioBlob = null;
+      
+      if (this.useSimpleAudioRecorder && this.audioRecorder) {
+        // Stop simple-audio-recorder
+        audioBlob = await this.audioRecorder.stop();
+      } else if (this.nativeRecorder && this.nativeRecorder.state === 'recording') {
+        // Stop native MediaRecorder
+        audioBlob = await new Promise((resolve) => {
+          this.nativeRecorder.onstop = () => {
+            const blob = new Blob(this.audioChunks, { type: this.nativeMimeType });
+            resolve(blob);
+          };
+          this.nativeRecorder.stop();
+        });
+      }
       
       this.isRecording = false;
       
@@ -1757,8 +1821,8 @@ class MChatBotWidget extends HTMLElement {
       this.resetVoiceRecordingUI();
 
       // Send audio message
-      if (mp3Blob) {
-        await this.sendVoiceMessage(mp3Blob);
+      if (audioBlob) {
+        await this.sendVoiceMessage(audioBlob);
       }
 
       console.log("✅ Voice recording stopped and sent");
