@@ -24,11 +24,11 @@ class MChatBotWidget extends HTMLElement {
     const is_ssl = import.meta.env.VITE_IS_SSL === "true";
     const api_domain = import.meta.env.VITE_API_DOMAIN;
     this.apiEndpoint = `${is_ssl ? "https" : "http"}://${api_domain}/mchatbot/public`;
+    this.chatbot_icon = `${is_ssl ? "https" : "http"}://${api_domain}/public/chatbot.png`;
     this.socketPath = `${is_ssl ? "wss" : "ws"}://${api_domain}/ws`;
     this.errorMessage = "";
     
          // Voice recording properties
-     this.audioRecorder = null;
      this.isRecording = false;
      this.recordingStartTime = 0;
      this.recordingTimer = null;
@@ -463,13 +463,14 @@ class MChatBotWidget extends HTMLElement {
           }
         </div>
         <div class="floating-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
+         <img src="./chatbot.png" alt="mChatBot" width="32" height="32">
+          
         </div>
       </div>
     `;
-
+{/* <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+           </svg> */}
     this.chatWindow = this.shadowRoot.querySelector(".chatbot-container");
     this.toggleButton = this.shadowRoot.querySelector(".chatbot-toggle");
     this.messageList = this.shadowRoot.querySelector(".chatbot-messages");
@@ -1005,6 +1006,7 @@ class MChatBotWidget extends HTMLElement {
     this.isMinimized = !this.isMinimized;
     this.chatWindow.classList.toggle("minimized");
     this.toggleButton.textContent = this.isMinimized ? "+" : "−";
+    this.floatingIcon.style.display = this.isMinimized ? "flex" : "none";
     
     // Re-setup event listeners after state change
     this.setupEventListeners();
@@ -1560,6 +1562,7 @@ class MChatBotWidget extends HTMLElement {
                 data.transcription);
             } else if (data.type === 'mixed') {
               // Mixed message with both text and audio
+              this.addMessage("user", "Transcription" ,null,null, data.transcription);
               this.addMessage("bot", data.text || data.message || "Response", 
                 data.timestamp || new Date().toISOString(), 
                 data.audio, 
@@ -1579,66 +1582,30 @@ class MChatBotWidget extends HTMLElement {
     }
   }
 
-  async initializeAudioRecorder() {
+  async checkMicrophonePermissions() {
     try {
-      // First try simple-audio-recorder
-      const AudioRecorder = await import('simple-audio-recorder');
-      
-      // Try different paths for the MP3 worker
-      const workerPaths = [
-        './mp3worker.js',
-        '/mp3worker.js',
-        `${window.location.origin}/mp3worker.js`,
-        `${window.location.origin}/public/mp3worker.js`
-      ];
-      
-      let workerLoaded = false;
-      // for (const path of workerPaths) {
-      //   try {
-      //     console.log(`�� Trying to load MP3 worker from: ${path}`);
-      //     await AudioRecorder.default.preload(path);
-      //     console.log(`✅ MP3 worker loaded successfully from: ${path}`);
-      //     workerLoaded = true;
-      //     break;
-      //   } catch (workerError) {
-      //     console.warn(`⚠️ Failed to load MP3 worker from ${path}:`, workerError);
-      //   }
-      // }
-      
-      if (!workerLoaded) {
-        throw new Error('Failed to load MP3 worker from all attempted paths');
+      // Check if MediaRecorder is supported
+      if (!window.MediaRecorder) {
+        console.warn("⚠️ MediaRecorder not supported in this browser");
+        return false;
       }
-      
-      // Create the audio recorder instance
-      this.audioRecorder = new AudioRecorder.default({
-        recordingGain: 1,
-        encoderBitRate: 64,
-        streaming: false,
-        constraints: {
-          channelCount: 1,
-          autoGainControl: true,
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        }
-      });
 
-      console.log("✅ Audio recorder initialized successfully");
-      this.useSimpleAudioRecorder = true;
+      // Check if we have permission to access microphone
+      const permission = await navigator.permissions.query({ name: 'microphone' });
       
-    } catch (error) {
-      console.warn("⚠️ Simple audio recorder failed, trying native MediaRecorder...", error);
-      
-      // Fallback to native MediaRecorder API
-      try {
-        await this.initializeNativeRecorder();
-        this.useSimpleAudioRecorder = false;
-      } catch (nativeError) {
-        console.error("❌ Both audio recording methods failed:", nativeError);
-        this.addMessage("bot", "Voice recording is not available. Please use text chat instead.");
-        this.mode = "chat";
-        this.swapInputInterface();
+      if (permission.state === 'denied') {
+        console.warn("⚠️ Microphone access denied by user");
+        return false;
+      } else if (permission.state === 'granted') {
+        console.log("✅ Microphone permission already granted");
+        return true;
+      } else {
+        console.log("ℹ️ Microphone permission not yet determined");
+        return true; // Will be requested when user tries to record
       }
+    } catch (error) {
+      console.warn("⚠️ Could not check microphone permissions:", error);
+      return true; // Assume it might work, will fail gracefully later
     }
   }
 
@@ -1674,13 +1641,21 @@ class MChatBotWidget extends HTMLElement {
     this.nativeMimeType = mimeType;
     console.log(`✅ Native MediaRecorder initialized with format: ${mimeType}`);
   }
+
   startVoiceRecording() {
-    if (!this.audioRecorder && !this.audioStream) {
-      console.error("Audio recorder not initialized");
-      return;
+    // Initialize recorder if not already done
+    if (!this.audioStream) {
+      this.initializeNativeRecorder().then(() => {
+        // Start countdown after recorder is initialized
+        this.startCountdown();
+      }).catch((error) => {
+        console.error("Failed to initialize audio recorder:", error);
+        this.addMessage("bot", "Sorry, failed to access microphone. Please check permissions.");
+      });
+      return; // Exit early, don't call startCountdown again
     }
 
-    // Start countdown
+    // Start countdown only if we already have an audio stream
     this.startCountdown();
   }
 
@@ -1712,10 +1687,7 @@ class MChatBotWidget extends HTMLElement {
 
   async actuallyStartRecording() {
     try {
-      if (this.useSimpleAudioRecorder && this.audioRecorder) {
-        // Use simple-audio-recorder
-        await this.audioRecorder.start();
-      } else if (this.audioStream) {
+      if (this.audioStream) {
         // Use native MediaRecorder
         this.nativeRecorder = new MediaRecorder(this.audioStream, {
           mimeType: this.nativeMimeType,
@@ -1791,10 +1763,7 @@ class MChatBotWidget extends HTMLElement {
     try {
       let audioBlob = null;
       
-      if (this.useSimpleAudioRecorder && this.audioRecorder) {
-        // Stop simple-audio-recorder
-        audioBlob = await this.audioRecorder.stop();
-      } else if (this.nativeRecorder && this.nativeRecorder.state === 'recording') {
+      if (this.nativeRecorder && this.nativeRecorder.state === 'recording') {
         // Stop native MediaRecorder
         audioBlob = await new Promise((resolve) => {
           this.nativeRecorder.onstop = () => {
@@ -1815,6 +1784,12 @@ class MChatBotWidget extends HTMLElement {
       if (this.countdownTimer) {
         clearInterval(this.countdownTimer);
         this.countdownTimer = null;
+      }
+
+      // Stop all tracks in the audio stream to remove recording indicator
+      if (this.audioStream) {
+        this.audioStream.getTracks().forEach(track => track.stop());
+        this.audioStream = null;
       }
 
       // Reset UI
@@ -1893,8 +1868,8 @@ class MChatBotWidget extends HTMLElement {
     const voiceBtn = this.shadowRoot.querySelector('.voice-record-btn');
     if (!voiceBtn) return;
 
-    // Initialize audio recorder when entering voice mode
-    this.initializeAudioRecorder();
+    // Check microphone permissions upfront
+    this.checkMicrophonePermissions();
 
     // Mouse events for desktop - single click handler
     voiceBtn.addEventListener('click', () => {
